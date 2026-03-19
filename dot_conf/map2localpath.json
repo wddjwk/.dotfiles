@@ -45,6 +45,17 @@
 		"tmux_local": "~/.config/tmux/tmux.conf.local",
         "wezterm": "~/.config/wezterm",
 		"yazi": "~/.config/yazi",
-        "zsh": "~/.zshrc"
+        "zsh": "~/.zshrc",
+        "claude_settings": "~/.claude/settings.json",
+        "claude_agent_md": "~/.claude/CLAUDE.md",
+        "claude_skills": "~/.claude/skills",
+        "claude_rules": "~/.claude/rules",
+        "opencode_settings": "~/.config/opencode/opencode.json",
+        "opencode_agent_md": "~/.config/opencode/AGENTS.md",
+        "opencode_skills": "~/.config/opencode/skills",
+        "opencode_rules": "~/.config/opencode/instructions",
+        "copilot_agent_md": "~/.github/copilot.instructions.md",
+        "copilot_skills": "~/.github/skills",
+        "copilot_rules": "~/.github/instructions"
 	}
 }
