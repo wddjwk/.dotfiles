@@ -5,10 +5,17 @@ alias l='ls -ahF --color=none'
 alias gdb='gdb -q'
 
 # git
+alias gitc='git checkout'
 alias gitl='git log'
 alias gitlg='git log --graph'
 alias gitlo='git log --oneline'
 alias gitlog='git log --oneline --graph'
+alias gitloga='git log --oneline --graph --all'
+alias gitrebase='git rebase --interactive --autostash --keep-empty --no-autosquash --rebase-merges'
+alias gitpullorigin='git pull origin $(git branch --show-current)'
+function gitcheckoutremote() {
+    git checkout --track origin/"$1"
+}
 
 # convinence
 alias PATH='echo $PATH | xargs -d: -n1'
@@ -25,30 +32,10 @@ alias vime='vim ~/.bash_env'
 
 alias fzf='fzf --ansi --smart-case'
 alias fzf-view="fzf --preview-window=up --preview='bat --color always {}'"
+alias today='date "+%Y%m%d"'
+alias now='date "+%Y-%m-%d %H:%M:%S"'
+alias timestamp='date +%s'
 
-function cd() {
-    if [[ -f "$1" ]]; then
-        builtin cd $(dirname "$1") || return
-    else
-        builtin cd "$@" || return
-    fi
-    local venv_path=""
-    local search_dir=$(pwd -P)
-    while [[ "$search_dir" != "/" ]]; do
-        if [[ -f "$search_dir/.venv/bin/activate" ]]; then
-            venv_path="$search_dir/.venv"
-            break
-        fi
-        search_dir=$(dirname "$search_dir")
-    done
-    if [[ -n "$venv_path" ]]; then
-        if [[ -z "$VIRTUAL_ENV" || "$VIRTUAL_ENV" != "$venv_path" ]]; then
-            source "$venv_path/bin/activate"
-        fi
-    elif [[ -n "$VIRTUAL_ENV" ]]; then
-        deactivate
-    fi
-}
 
 # 彩色的less（彩色man手册）
 export LESS_TERMCAP_mb=$'\e[01;31m'    # 开始加粗（红色）
@@ -103,6 +90,54 @@ ANSI_FG_WHITE="\e[37m"
 ANSI_FG_YELLOW="\e[33m"
 
 # functions
+function cd() {
+    if [[ -f "$1" ]]; then
+        builtin cd "$(dirname "$1")" || return
+    else
+        builtin cd "$@" || return
+    fi
+    local search_dir=$(pwd -P)
+    local venv_path=""
+    while [[ "$search_dir" != "/" ]]; do
+        if [[ -f "$search_dir/.venv-docker/bin/activate" && $(whoami) == "user" ]]; then
+            venv_path="$search_dir/.venv-docker"
+            break
+        fi
+        if [[ -f "$search_dir/.venv/bin/activate" ]]; then
+            venv_path="$search_dir/.venv"
+            break
+        fi
+        search_dir=$(dirname "$search_dir")
+    done
+    if [[ -n "$venv_path" ]]; then
+        if [[ -z "$VIRTUAL_ENV" || "$VIRTUAL_ENV" != "$venv_path" ]]; then
+            source "$venv_path/bin/activate"
+        fi
+    elif [[ -n "$VIRTUAL_ENV" ]] && declare -f deactivate >/dev/null; then
+        deactivate
+    fi
+}
+
+function ghdown() {
+    url=$(python3 -c "import urllib.parse; print(f'https://ghfast.top/?q={urllib.parse.quote(input())}')" <<<"$1")
+    output="${2:-$(pwd)}"/$(basename "$1")
+    curl --silent --fail --show-error -L "$url" --output "${output}"
+    echo "save to ${output}"
+}
+
+function sep() {
+    local term_width=$(tput cols)
+    local separator_line=$(printf "${ANSI_FG_PINK}%*s${ANSI_RESET}" "$term_width" | tr ' ' '=')
+    local current_time=$(now)
+    local time_length=${#current_time}
+    local stars_length=$(((term_width - time_length - 2) / 2))
+    local stars_left=$(printf "${ANSI_FG_PINK}%*s${ANSI_RESET}" "$stars_length" | tr ' ' '>')
+    local stars_right=$(printf "${ANSI_FG_PINK}%*s${ANSI_RESET}" "$stars_length" | tr ' ' '<')
+    echo "$separator_line"
+    echo "${stars_left} ${current_time} ${stars_right}"
+    echo "$separator_line"
+}
+
 ipshow() {
     echo -en '[IPV4]: '
     curl 4.ipw.cn
@@ -125,7 +160,7 @@ bak() {
 
 color() {
     local colors=({30..37} {40..47})
-    for code in ${colors[@]}; do
+    for code in "${colors[@]}"; do
         echo -en "\e[${code}m"'\\e['"$code"'m'"\e[0m"
         echo -en "\e[$code;1m"'\\e['"$code"';1m'"\e[0m"
         echo -en "\e[$code;3m"'\\e['"$code"';3m'"\e[0m"
@@ -135,7 +170,7 @@ color() {
 }
 
 install() {
-    sudo mv $@ /usr/local/bin/
+    sudo mv "$@" /usr/local/bin/
 }
 
 # 编译运行
@@ -155,7 +190,7 @@ mk() {
     fi
 
     case "$extension" in
-    cpp)
+    cpp | cc | cxx)
         echo "Compiling C++ file '$file'..."
         g++ "$file" -o "$base" -std=c++20 -g
         if [ $? -eq 0 ]; then
@@ -209,80 +244,71 @@ mk() {
 alias tmuxkillall='tmux kill-server'
 # alias tmuxkillall="tmux list-sessions | awk -F: '{print $1}' | xargs -n 1 tmux kill-session -t"
 
-tmux2() {
-    if [ $# -ne 2 ]; then
-        echo "Give me TWO executables to split the tmux"
-        return
-    fi
+tmuxn() {
+    local a c="" cmds=() sn n i=0
+    for a in "$@"; do [[ "$a" == "+" ]] && { cmds+=("$c"); c=""; } || c="${c:+$c }$a"; done
+    [[ -n "$c" ]] && cmds+=("$c")
+    (( ${#cmds[@]} )) || { echo "Usage: tmuxn cmd1 + cmd2 ..."; return 1; }
 
-    session_name="$(basename "$1" .${1##*.})_$(basename "$2" .${2##*.})"
-    tmux kill-session -t ${session_name} 2>/dev/null
-    tmux new-session -d -s "cs_${session_name}"
-    tmux split-window -h
-    tmux select-pane -t 1
-    tmux send-keys "$1" C-m
-    tmux select-pane -t 2
-    tmux send-keys "$2" C-m
-    tmux attach-session -t "cs_${session_name}"
-}
+    sn="cs_$(basename "${cmds[0]%% *}")"
+    n=${#cmds[@]}
 
-tmux3() {
-    if [ $# -ne 3 ]; then
-        echo "Give me THREE executables to split the tmux"
-        return
-    fi
+    for c in "${cmds[@]}"; do
+        if (( i++ == 0 )); then
+            tmux kill-session -t "$sn" 2>/dev/null
+            tmux new-session -d -s "$sn"
+        else
+            (( n==2 )) && tmux split-window -h -t "$sn" || { tmux split-window -t "$sn"; tmux select-layout -t "$sn" tiled > /dev/null; }
+        fi
+        tmux send-keys -t "$sn" "$c" C-m
+        sleep 0.5
+    done
 
-    session_name="$(basename "$1" .${1##*.})_$(basename "$2" .${2##*.})_$(basename "$3" .${3##*.})"
-    tmux kill-session -t ${session_name} 2>/dev/null
-    tmux new-session -d -s "cs_${session_name}"
-    tmux split-window -h
-    tmux select-pane -t 2
-    tmux split-window -v
-    tmux select-pane -t 1
-    tmux send-keys "$1" C-m
-    tmux select-pane -t 2
-    tmux send-keys "$2" C-m
-    tmux select-pane -t 3
-    tmux send-keys "$3" C-m
-    tmux attach-session -t "cs_${session_name}"
+    tmux select-pane -t "$sn.0"
+    tmux attach-session -t "$sn"
 }
 
 ## rg + fzf
 rvim() {
     local file
-    file=$(rg $@ -l | fzf) && vim "$file"
+    file=$(rg "$@" -l | fzf) && vim "$file"
 }
 
 rnvim() {
     local file
-    file=$(rg $@ -l | fzf) && nvim "$file"
+    file=$(rg "$@" -l | fzf) && nvim "$file"
 }
 
 ## locate + fzf
 lnvim() {
     local file
-    file=$(locate $@ | fzf) && nvim $file
+    file=$(locate "$@" | fzf) && nvim $file
 }
 
 ## fd + fzf
 ftmux2() {
     local server client
-    server=$(fd -t f -uu . $@ | fzf)
-    client=$(fd -t f -uu . $@ | fzf)
-    tmux2 ${server} ${client}
+    server=$(fd -t f -uu -L . "$@" | fzf)
+    client=$(fd -t f -uu -L . "$@" | fzf)
+    tmuxn ${server} ${client}
 }
 
 ftmux3() {
     local server client1 client2
-    server=$(fd -t f -uu . $@ | fzf)
-    client1=$(fd -t f -uu . $@ | fzf)
-    client2=$(fd -t f -uu . $@ | fzf)
-    tmux3 ${server} ${client1} ${client2}
+    server=$(fd -t f -uu -L . "$@" | fzf)
+    client1=$(fd -t f -uu -L . "$@" | fzf)
+    client2=$(fd -t f -uu -L . "$@" | fzf)
+    tmuxn ${server} ${client1} ${client2}
 }
+
+alias flog='fzf --tac --no-sort --border --ansi --multi'
 
 fcd() {
     local dir
-    dir=$(fd . $@ | fzf)
+    dir=$(fd . "$@" | fzf)
+    if [ -z $dir ]; then
+        return
+    fi
     if [ -d $dir ]; then
         cd $dir
     else
@@ -290,29 +316,43 @@ fcd() {
     fi
 }
 
+fcdd() {
+    local dir
+    dir=$(fd . -t d "$@" | fzf)
+    if [ -z $dir ]; then
+        return
+    fi
+    cd $dir
+}
+
 fpwd() {
     local dir
-    dir=$(fd . $@ | fzf) && echo $(realpath "$dir")
+    dir=$(fd . "$@" | fzf) && echo $(realpath "$dir")
+}
+
+fvi() {
+    local file
+    file=$(fd . "$@" | fzf) && vim "$file"
 }
 
 fvim() {
     local file
-    file=$(fd . $@ | fzf) && vim "$file"
+    file=$(fd . "$@" | fzf) && nvim "$file"
 }
 
 fnvim() {
     local file
-    file=$(fd . $@ | fzf) && nvim $file
+    file=$(fd . "$@" | fzf) && nvim $file
 }
 
 fbat() {
     local file
-    file=$(fd . $@ | fzf) && bat $file
+    file=$(fd . "$@" | fzf) && bat $file
 }
 
 fcat() {
     local file
-    file=$(fd . $@ | fzf) && cat $file
+    file=$(fd . "$@" | fzf) && cat $file
 }
 
 fkill() {
@@ -324,12 +364,35 @@ fkill() {
     fi
 }
 
+ftmuxkill() {
+    local items target type id
+    items=$(tmux list-sessions -F "S:#{session_name}|  [Session] #{session_name} (#{session_windows} windows)" 2>/dev/null;
+            tmux list-windows -a -F "W:#{session_name}:#{window_index}|   [Window] #{session_name}:#{window_index} \"#{window_name}\"" 2>/dev/null;
+            tmux list-panes -a -F "P:#{session_name}:#{window_index}.#{pane_index}|    [Pane] #{session_name}:#{window_index}.#{pane_index} [#{pane_current_command}]" 2>/dev/null)
+
+    [[ -z "$items" ]] && echo "No tmux sessions found." && return
+
+    target=$(echo "$items" | fzf -m --delimiter="|" --with-nth=2.. | cut -d'|' -f1)
+
+    [[ -z "$target" ]] && return
+
+    echo "$target" | while read t; do
+        type=${t%%:*}
+        id=${t#*:}
+        case "$type" in
+            S) tmux kill-session -t "$id" 2>/dev/null ;;
+            W) tmux kill-window -t "$id" 2>/dev/null ;;
+            P) tmux kill-pane -t "$id" 2>/dev/null ;;
+        esac
+    done
+}
+
 fgit() {
     local hashid
-    hashid=$(git lng \
-        | fzf --preview-window=up,36% \
-            --preview="git show --color=always \$(echo {} | choose -f '-' 0)" \
-        | choose -f ' ' 1 | choose -f '-' 0)
+    hashid=$(git lng |
+        fzf --preview-window=up,36% \
+            --preview="git show --color=always \$(echo {} | choose -f '-' 0)" |
+        choose -f ' ' 1 | choose -f '-' 0)
     git show ${hashid} | delta -s
 }
 
@@ -373,11 +436,11 @@ subl() {
 
 ### software manage (only for linux)
 update-nvim() {
-	wget -O /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
-	sudo rm -rf /opt/nvim-linux-x86_64
-	sudo tar xf /tmp/nvim.tar.gz -C /opt
-	rm /tmp/nvim.tar.gz
-	echo "DONE!"
+    wget -O /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
+    sudo rm -rf /opt/nvim-linux-x86_64
+    sudo tar xf /tmp/nvim.tar.gz -C /opt
+    rm /tmp/nvim.tar.gz
+    echo "DONE!"
 }
 
 ### perf
@@ -396,8 +459,8 @@ perf_flame() {
     local vm_port=${3:-8000}
     local svg_link="http://${vm_ip}:${vm_port}/${filename}"
 
-    sudo perf record -F 99 -g -- $1
-    sudo perf script -f >perf.out
+    sudo perf record -F 1000 -g -- $1
+    sudo perf script >perf.out
 
     perl ${FlameGraphSvgPath}/stackcollapse-perf.pl ${SvgPath}/perf.out | grep -v '^#' | perl ${FlameGraphSvgPath}/flamegraph.pl >${SvgPath}/${filename}
 
