@@ -9,6 +9,7 @@
     editor = nvim
     autocrlt = input
     pager = delta
+	symlinks = true
 
 [pull]
 	rebase = false
