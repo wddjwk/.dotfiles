@@ -1,0 +1,53 @@
+{
+    "$schema": "https://opencode.ai/config.json",
+    "instructions": [
+        "instructions/*.md"
+    ],
+    "plugin": [
+        "opencode-gemini-auth@latest"
+    ],
+    "provider": {
+        "google": {
+            "options": {
+                "projectId": "peak-vortex-488717-b7"
+            }
+        },
+        "v-api-v3": {
+            "npm": "@ai-sdk/openai-compatible",
+            "name": "v-api-v3",
+            "options": {
+                "baseURL": "https://api.v3.cm/v1"
+            },
+            "models": {
+                "claude sonnet 4.6": {
+                    "name": "claude-sonnet-4-6"
+                },
+                "claude sonnet 4.5": {
+                    "name": "claude-sonnet-4-5"
+                },
+                "claude opus 4.6": {
+                    "name": "claude-opus-4-6"
+                },
+                "gpt-5.3-codex": {
+                    "name": "gpt-5.3-codex"
+                },
+                "gpt-5.4": {
+                    "name": "gpt-5.4"
+                },
+                "gemini-2.5-flash": {
+                    "name": "gemini-2.5-flash"
+                },
+                "glm-4.5-flash": {
+                    "name": "glm-4.5-flash"
+                }
+            }
+        }
+    },
+    "permission": {
+        // ask, allow, deny
+        "*": "allow",
+        "external_directory": {
+            "~": "allow"
+        }
+    }
+}
