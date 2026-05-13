@@ -1,263 +1,250 @@
+#!/usr/bin/env python3
+"""Dotfile manager: create symlinks from repo to local paths."""
+
+import argparse
 import json
 import os
 import platform
 import shutil
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
 
-local_mapper = "dot_conf/map2localpath.json"
-repo_mapper = "dot_conf/map2repopath.json"
-local_conf = "dot_conf/local.json"
-repo_path = os.getcwd()
+MAPPING_FILE = "dot_conf/mapping.json"
+LOCAL_CONF = "dot_conf/local.json"
+REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
-def _os_type() -> str:
-    systype = platform.system()
-    if systype == "Windows":
-        return "win"
-    else:
-        return "linux"
+# ── Color / Style ────────────────────────────────────────────
+
+class Style:
+    """ANSI escape wrapper; auto-disabled on Windows."""
+
+    def __init__(self):
+        self._on = platform.system() != "Windows"
+
+    def _wrap(self, code, text):
+        return f"\033[{code}m{text}\033[0m" if self._on else text
+
+    # foregrounds
+    def red(self, t):       return self._wrap("31", t)
+    def green(self, t):     return self._wrap("32", t)
+    def yellow(self, t):    return self._wrap("33", t)
+    def blue(self, t):      return self._wrap("34", t)
+
+    # backgrounds
+    def bg_red(self, t):    return self._wrap("41", t)
+    def bg_green(self, t):  return self._wrap("42", t)
+    def bg_yellow(self, t): return self._wrap("43", t)
+    def bg_blue(self, t):   return self._wrap("44", t)
+
+    # styles
+    def bold(self, t):      return self._wrap("1", t)
+    def underline(self, t): return self._wrap("4", t)
+
+    # composite helpers — match original naming conventions
+    def link(self, t):       return self.underline(self.blue(t))
+    def bright_link(self, t): return self.bold(self.underline(self.blue(t)))
+
+    # tags used in log lines
+    def tag_skip(self, t):    return self.bg_yellow(t)        # [SKIPPED]
+    def tag_success(self, t): return self.bg_green(t)         # [SUCCESS]
+    def tag_fail(self, t):    return self.bg_red(t)           # [FAILED, BROKEN SYMBOLIC]
+    def tag_yellow(self, t):  return self.yellow(t)           # [RemoveDir], [REPO-MISS], etc.
+    def tag_green(self, t):   return self.green(t)            # [Link exist], [Rename]
+    def tag_red(self, t):     return self.red(t)              # [Exception]
 
 
-RESET = "\033[0m"
-BOLD = "\033[1m"
-UNDERLINE = "\033[4m"
-REVERSE = "\033[7m"
-
-FG_RED = "\033[31m"
-FG_GREEN = "\033[32m"
-FG_YELLOW = "\033[33m"
-FG_BLUE = "\033[34m"
-
-BG_RED = "\033[41m"
-BG_GREEN = "\033[42m"
-BG_YELLOW = "\033[43m"
-BG_BLUE = "\033[44m"
-
-if _os_type() == "win":
-    RESET = ""
-    BOLD = ""
-    UNDERLINE = ""
-    REVERSE = ""
-    FG_RED = ""
-    FG_GREEN = ""
-    FG_YELLOW = ""
-    FG_BLUE = ""
-    BG_RED = ""
-    BG_GREEN = ""
-    BG_YELLOW = ""
-    BG_BLUE = ""
-
-COMMON_FILE_LINK_COLOR = UNDERLINE + FG_BLUE
-SUCCESS_FILE_LINK_COLOR = UNDERLINE + FG_BLUE + BOLD
+s = Style()
 
 
-def _warn(msg: str):
-    print(f"{BG_YELLOW}[SKIPPED]{RESET} {msg}")
+# ── Helpers ──────────────────────────────────────────────────
+
+def os_key() -> str:
+    return "win" if platform.system() == "Windows" else "linux"
+
+
+def load_variables() -> dict:
+    """Load template variables from local.json; defaults to ~."""
+    defaults = {"bash_home": "~"}
+    if os.path.exists(LOCAL_CONF):
+        with open(LOCAL_CONF, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if "bash-home" in data and "bash_home" not in data:
+                data["bash_home"] = data["bash-home"]
+            defaults.update(data)
+    return defaults
+
+
+def expand_local(path: str, variables: dict) -> str:
+    """Expand ~ and ${var} in a local path."""
+    for key, val in variables.items():
+        path = path.replace(f"${{{key}}}", val)
+    return os.path.normpath(os.path.expanduser(path))
+
+
+def expand_repo(path: str) -> str:
+    """Resolve a repo-relative path to absolute."""
+    return os.path.normpath(os.path.join(REPO_ROOT, path))
 
 
 def _log(msg: str):
     print(f"[LOG] {msg}")
 
 
-def _mapper(type: str) -> Dict[str, str]:
-    """
-    ``Return`` a dict\n
-    ``type`` "local" or "repo", this two's mapper is different
-    """
-    if type == "local":
-        with open(local_mapper, "r", encoding="utf-8") as file:
-            if _os_type() == "win":
-                if not os.path.exists(local_conf):
-                    raise FileNotFoundError(
-                        f"""!
+def _warn(msg: str):
+    print(f"{s.tag_skip('[SKIPPED]')} {msg}")
 
-{FG_YELLOW} You should config your windows-user-home first! {RESET}
 
-By create a file named {BOLD}{FG_GREEN} <<{local_conf}>> {RESET}at the root of this git repo,
-    in which specify your "bash-home":"C:/msys2/home/xxx".
-    and you can also just use "~"
+# ── Symlink core ─────────────────────────────────────────────
 
-This is because the difference below:
-(1) If you are using [mingw64], your .bashrc maybe stored in C:/Users/xxx/.
-    this case can use os.path.expanduser("~") just like unix-link.
-(2) But if you are using [mysy2], your .bashrc maybe stored in [MYSY_HOME]/home/xxx/.
-So you'd better specify them yourself, and of course, you'll do this work only once.
-
-And the file {local_conf} you will create, won't added to the repo,
-    if you insist to do this, modify the .gitignore file please.
-                        """
-                    )
-                else:
-                    win_home = ""
-                    with open(local_conf, "r") as f:
-                        win_home = json.load(f)["bash-home"]
-                    win_home = os.path.expanduser(win_home)
-                    tmp = json.load(file)[_os_type()]
-                    for k, val in tmp.items():
-                        tmp[k] = os.path.normpath(
-                            os.path.expanduser(
-                                val.replace("${bash-home}", win_home)
-                            )
-                        )
-                    return tmp
-            else:
-                tmp = json.load(file)[_os_type()]
-                for k, val in tmp.items():
-                    tmp[k] = os.path.normpath(os.path.expanduser(val))
-                return tmp
-    elif type == "repo":
-        with open(repo_mapper, "r", encoding="utf-8") as file:
-            tmp = json.load(file)[_os_type()]
-            for k, val in tmp.items():
-                tmp[k] = os.path.expanduser(
-                    os.path.join(os.path.normpath(repo_path), os.path.normpath(val))
-                )
-            return tmp
+def _remove_path(path: str):
+    """Remove a file, directory, or symlink at *path*."""
+    if os.path.isdir(path) and not os.path.islink(path):
+        shutil.rmtree(path)
+        _log(f"{s.tag_yellow('[RemoveDir]')}: Delete {s.link(path)}")
+    elif os.path.islink(path):
+        os.unlink(path)
+        _log(f"{s.tag_yellow('[RemoveLink]')}: Delete {s.link(path)}")
     else:
-        raise RuntimeError(f"Unknown type {type}, ['os', 'repo'] supported.")
+        os.remove(path)
+        _log(f"{s.tag_yellow('[RemoveFile]')}: Delete {s.link(path)}")
 
 
-def _get_all_supported_conf():
-    mapper = _mapper("repo")
-    return [k for k in mapper]
+def _make_link(repo: str, local: str):
+    """Create symlink *local* → *repo*. Remove existing path first."""
 
-
-def _get_conf_path(type: str, conf: str) -> Optional[str]:
-    mapper = _mapper(type)
-    try:
-        pt = mapper[conf]
-    except KeyError:
+    # repo source missing
+    if not os.path.exists(repo):
         _warn(
-            f"""There is no item about {COMMON_FILE_LINK_COLOR} \"{conf}\" {RESET} in {
-                FG_YELLOW
-            }map2{BG_BLUE}{BOLD}{type}{RESET}{FG_YELLOW}path.json{
-                RESET
-            } file, please check it."""
-        )
-        return None
-    return os.path.normpath(pt)
-
-
-def _get_paired_path(conf: str) -> list[Optional[str]]:
-    local_path = _get_conf_path("local", conf)
-    repo_path = _get_conf_path("repo", conf)
-    if local_path == "." or local_path == "":
-        local_path = None
-    return [local_path, repo_path]
-
-
-def _suffix():
-    now = datetime.now()
-    timestamp = now.strftime("%Y-%m%d-%H%M%S")
-    return f".bak_ByDotFileManager_{timestamp}"
-
-
-def _handle_exists_file(filename: str, del_exist: bool):
-    if del_exist:
-        if os.path.isdir(filename):
-            shutil.rmtree(filename)
-            _log(
-                f"{FG_YELLOW}[RemoveDir]{RESET}: Delete {COMMON_FILE_LINK_COLOR}{filename}{RESET}"
-            )
-        elif os.path.islink(filename):
-            os.unlink(filename)
-            _log(
-                f"{FG_YELLOW}[RemoveLink]{RESET}: Delete {COMMON_FILE_LINK_COLOR}{filename}{RESET}"
-            )
-        else:
-            os.remove(filename)
-            _log(
-                f"{FG_YELLOW}[RemoveFile]{RESET}: Delete {COMMON_FILE_LINK_COLOR}{filename}{RESET}"
-            )
-    else:
-        new_name = f"{filename}{_suffix()}"
-        os.rename(filename, new_name)
-        _log(
-            f"{FG_GREEN}[Rename]{RESET}: {COMMON_FILE_LINK_COLOR}{filename}{RESET} => {COMMON_FILE_LINK_COLOR}{new_name}{RESET}"
-        )
-
-
-def _make_link(repo_source: Optional[str], local_link: Optional[str], del_exist=False):
-    # check repo
-    if repo_source is None or not os.path.exists(repo_source):
-        _warn(
-            f"""{FG_YELLOW}[CONF-MAPPED,REPO-MISS]{RESET}: {COMMON_FILE_LINK_COLOR}{
-                repo_source
-            }{RESET} unexists, skip create this file's symbolink to {
-                COMMON_FILE_LINK_COLOR
-            }{local_link}{RESET}"""
+            f"{s.tag_yellow('[CONF-MAPPED,REPO-MISS]')}: {s.link(repo)}"
+            f" unexists, skip create this file's symbolink to {s.link(local)}"
         )
         return
 
-    # check local
-    if local_link is None:
-        _warn(
-            f"{FG_YELLOW}[REPO-HAS,LOCAL-UNMAPPED]{RESET}: {COMMON_FILE_LINK_COLOR}{repo_source}{RESET} don't have mapped path in your os"
-        )
-        return
-
-    if os.path.islink(local_link):
-        old_target = os.readlink(local_link)
-        if os.path.exists(old_target) and os.path.samefile(old_target, repo_source):
+    # already correctly linked?
+    if os.path.islink(local):
+        old_target = os.readlink(local)
+        if os.path.exists(old_target) and os.path.samefile(old_target, repo):
             _log(
-                f"{FG_GREEN}[Link exist]{RESET} {SUCCESS_FILE_LINK_COLOR}{local_link}{RESET} => {SUCCESS_FILE_LINK_COLOR}{old_target}{RESET}"
+                f"{s.tag_green('[Link exist]')} "
+                f"{s.bright_link(local)} => {s.bright_link(old_target)}"
             )
             return
-        else:
-            _handle_exists_file(local_link, del_exist)
+        _remove_path(local)
+    elif os.path.exists(local):
+        _remove_path(local)
     else:
-        if os.path.exists(local_link):
-            _handle_exists_file(local_link, del_exist)
-        else:
-            par = Path(local_link).parent
-            if not os.path.exists(par):
-                os.makedirs(par)
+        parent = Path(local).parent
+        if not parent.exists():
+            parent.mkdir(parents=True)
 
-    # make link
+    # create symlink
     try:
-        is_dir = os.path.isdir(repo_source)
-        os.symlink(repo_source, local_link, target_is_directory=is_dir)
-        ## make sure that the creatation done successfully
-        if os.path.exists(os.readlink(local_link)) and os.path.samefile(
-            os.readlink(local_link), repo_source
+        target_is_dir = os.path.isdir(repo)
+        os.symlink(repo, local, target_is_directory=target_is_dir)
+        # verify
+        if os.path.exists(os.readlink(local)) and os.path.samefile(
+            os.readlink(local), repo
         ):
             _log(
-                f"{BG_GREEN}[SUCCESS]{RESET} {SUCCESS_FILE_LINK_COLOR}{local_link}{RESET} => {SUCCESS_FILE_LINK_COLOR}{repo_source}{RESET} DONE!"
+                f"{s.tag_success('[SUCCESS]')} "
+                f"{s.bright_link(local)} => {s.bright_link(repo)} DONE!"
             )
         else:
             _warn(
-                f"{BG_RED}[FAILED, BROKEN SYMBOLIC]{RESET} {COMMON_FILE_LINK_COLOR}{local_link}{RESET} => {BG_YELLOW}{os.readlink(local_link)}{RESET}, should be =>> {COMMON_FILE_LINK_COLOR}{repo_source}{RESET}"
+                f"{s.tag_fail('[FAILED, BROKEN SYMBOLIC]')} "
+                f"{s.link(local)} => {s.bg_yellow(os.readlink(local))}, "
+                f"should be =>> {s.link(repo)}"
             )
     except OSError as e:
         _warn(
-            f"""{FG_RED}[Exception]{RESET}: Please check if you have {BOLD}sudo mode{
-                RESET
-            } to create symbollink.\n\t {type(e).__name__} Occurrs when create link at {
-                COMMON_FILE_LINK_COLOR
-            }{local_link}{RESET}\n\tDetail:{e}"""
+            f"{s.tag_red('[Exception]')}: Please check if you have {s.bold('sudo mode')}"
+            f" to create symbollink.\n"
+            f"\t {type(e).__name__} Occurrs when create link at {s.link(local)}\n"
+            f"\tDetail:{e}"
         )
-        return
     except Exception as e:
         _warn(
-            f"{FG_RED}[Exception]{RESET}: {type(e).__name__} while link {COMMON_FILE_LINK_COLOR}{local_link}{RESET} to {COMMON_FILE_LINK_COLOR}{repo_source}{RESET}"
+            f"{s.tag_red('[Exception]')}: {type(e).__name__} while link "
+            f"{s.link(local)} to {s.link(repo)}"
         )
+
+
+# ── Main entry ───────────────────────────────────────────────
+
+def link_configs(names: list[str] | None, dry_run: bool = False):
+    """Link dotfiles. *names* is None → all configs."""
+    key = os_key()
+    with open(MAPPING_FILE, "r", encoding="utf-8") as f:
+        all_entries = json.load(f).get(key, {})
+    variables = load_variables()
+
+    if names is None:
+        names = list(all_entries.keys())
+
+    for name in names:
+        entry = all_entries.get(name)
+        if entry is None:
+            _warn(
+                f"There is no item about {s.link(chr(34) + name + chr(34))} in "
+                f"{s.yellow('mapping')}{s.bg_blue(s.bold(key))}{s.yellow('.json')}"
+                f" file, please check it."
+            )
+            continue
+
+        local_raw = entry.get("local", "")
+        if not local_raw:
+            repo_abs = expand_repo(entry["repo"])
+            _warn(
+                f"{s.tag_yellow('[REPO-HAS,LOCAL-UNMAPPED]')}: "
+                f"{s.link(repo_abs)} don't have mapped path in your os"
+            )
+            continue
+
+        repo = expand_repo(entry["repo"])
+        local = expand_local(local_raw, variables)
+
+        if dry_run:
+            _log(f"{s.tag_yellow('[DRY-RUN]')} Would link {s.link(local)} => {s.link(repo)}")
+        else:
+            _make_link(repo, local)
+
+
+def cmd_list():
+    key = os_key()
+    with open(MAPPING_FILE, "r", encoding="utf-8") as f:
+        entries = json.load(f).get(key, {})
+    max_len = max(len(n) for n in entries) if entries else 20
+    for name, entry in entries.items():
+        local = entry.get("local", "(unmapped)")
+        print(f"  {s.bright_link(name):{max_len+10}}  →  {local}")
+
+
+# ── CLI ──────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Dotfile manager — symlink dotfiles from this repo to your system"
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--all", "-a", action="store_true", help="Link all configs (default)")
+    group.add_argument("--config", "-c", type=str, metavar="CFG",
+                       help="Comma-separated config names to link")
+    group.add_argument("--list", "-l", action="store_true", help="List available configs")
+    parser.add_argument("--dry-run", "-n", action="store_true",
+                        help="Preview only, don't make changes")
+
+    args = parser.parse_args()
+
+    if args.list:
+        cmd_list()
         return
 
+    names = None
+    if args.config:
+        names = [n.strip() for n in args.config.split(",") if n.strip()]
 
-def link_to_repo(conf_list: list[str], del_exist=False):
-    for conf in conf_list:
-        local_path, repo_path = _get_paired_path(conf)
-        _make_link(repo_path, local_path, del_exist)
+    link_configs(names, dry_run=args.dry_run)
 
 
 if __name__ == "__main__":
-    all_supported_dotfile = _get_all_supported_conf()
-    want_update = [
-        "vim",
-        "nvim",
-        "bash_alias",
-    ]
-
-    link_to_repo(all_supported_dotfile, True)
+    main()

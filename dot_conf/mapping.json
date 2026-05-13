@@ -1,0 +1,190 @@
+{
+    "win": {
+        "bash": {
+            "repo": "win/bash/.bashrc",
+            "local": "${bash_home}/.bashrc"
+        },
+        "bash_alias": {
+            "repo": "win/bash/.bash_aliases",
+            "local": "${bash_home}/.bash_aliases"
+        },
+        "editorconfig": {
+            "repo": ".editorconfig",
+            "local": "${bash_home}/.editorconfig"
+        },
+        "pwsh": {
+            "repo": "win/pwsh/Microsoft.PowerShell_profile.ps1",
+            "local": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1"
+        },
+        "vim": {
+            "repo": "vim/vim8/.vimrc",
+            "local": "${bash_home}/.vimrc"
+        },
+        "vim_autoload": {
+            "repo": "vim/vim8/.vim/autoload",
+            "local": "${bash_home}/.vim/autoload"
+        },
+        "vim_plugin": {
+            "repo": "vim/vim8/.vim/plugin",
+            "local": "${bash_home}/.vim/plugin"
+        },
+        "vim_coc_settings": {
+            "repo": "vim/coc-settings.json",
+            "local": "${bash_home}/.vim/coc-settings.json"
+        },
+        "tmux": {
+            "repo": ".config/tmux/.tmux.conf",
+            "local": "${bash_home}/.config/tmux/tmux.conf"
+        },
+        "tmux_local": {
+            "repo": ".config/tmux/.tmux.conf.local",
+            "local": "${bash_home}/.config/tmux/tmux.conf.local"
+        },
+        "git": {
+            "repo": "win/git/.gitconfig",
+            "local": "~/.gitconfig"
+        },
+        "lazygit": {
+            "repo": ".config/lazygit/config.yml",
+            "local": "~/AppData/Local/lazygit/config.yml"
+        },
+        "nvim": {
+            "repo": ".config/nvim",
+            "local": "~/AppData/Local/nvim"
+        },
+        "clangd": {
+            "repo": ".config/clangd/config.yaml",
+            "local": "~/AppData/Local/clangd/config.yaml"
+        },
+        "helix": {
+            "repo": "helix/config.toml",
+            "local": "~/AppData/Roaming/helix/config.toml"
+        },
+        "vscode_setting": {
+            "repo": "vscode/settings.json",
+            "local": "~/AppData/Roaming/Code/User/settings.json"
+        },
+        "vscode_key": {
+            "repo": "vscode/keybindings.json",
+            "local": "~/AppData/Roaming/Code/User/keybindings.json"
+        },
+        "vscode_snippets": {
+            "repo": "vscode/snippets",
+            "local": "~/AppData/Roaming/Code/User/snippets"
+        },
+        "wezterm": {
+            "repo": ".config/wezterm",
+            "local": "~/.config/wezterm"
+        },
+        "yazi": {
+            "repo": ".config/yazi",
+            "local": "~/AppData/Roaming/yazi/config"
+        }
+    },
+    "linux": {
+        "bash_alias": {
+            "repo": "unix/bash/.bash_aliases",
+            "local": "~/.bash_aliases"
+        },
+        "editorconfig": {
+            "repo": ".editorconfig",
+            "local": "~/.editorconfig"
+        },
+        "vim": {
+            "repo": "vim/vim8/.vimrc",
+            "local": "~/.vimrc"
+        },
+        "vim_autoload": {
+            "repo": "vim/vim8/.vim/autoload",
+            "local": "~/.vim/autoload"
+        },
+        "vim_plugin": {
+            "repo": "vim/vim8/.vim/plugin",
+            "local": "~/.vim/plugin"
+        },
+        "vim_coc_settings": {
+            "repo": "vim/coc-settings.json",
+            "local": "~/.vim/coc-settings.json"
+        },
+        "nvim": {
+            "repo": ".config/nvim",
+            "local": "~/.config/nvim"
+        },
+        "git": {
+            "repo": "unix/git/.gitconfig",
+            "local": "~/.gitconfig"
+        },
+        "lazygit": {
+            "repo": ".config/lazygit/config.yml",
+            "local": "~/.config/lazygit/config.yml"
+        },
+        "helix": {
+            "repo": "helix/config.toml",
+            "local": ""
+        },
+        "cgdb": {
+            "repo": ".cgdb/cgdbrc",
+            "local": "~/.cgdb/cgdbrc"
+        },
+        "gdb": {
+            "repo": "gdb/.gdbinit",
+            "local": "~/.gdbinit"
+        },
+        "pip": {
+            "repo": ".pip/pip.conf",
+            "local": "~/.pip/pip.conf"
+        },
+        "redis": {
+            "repo": ".redis/redis.conf",
+            "local": "~/.redis/redis.conf"
+        },
+        "clangd": {
+            "repo": ".config/clangd/config.yaml",
+            "local": "~/.config/clangd/config.yaml"
+        },
+        "vscode_setting": {
+            "repo": "vscode/settings.json",
+            "local": "~/.config/Code/User/settings.json"
+        },
+        "vscode_key": {
+            "repo": "vscode/keybindings.json",
+            "local": "~/.config/Code/User/keybindings.json"
+        },
+        "vscode_snippets": {
+            "repo": "vscode/snippets",
+            "local": "~/.config/Code/User/snippets"
+        },
+        "tmux": {
+            "repo": ".config/tmux/.tmux.conf",
+            "local": "~/.config/tmux/tmux.conf"
+        },
+        "tmux_local": {
+            "repo": ".config/tmux/.tmux.conf.local",
+            "local": "~/.config/tmux/tmux.conf.local"
+        },
+        "wezterm": {
+            "repo": ".config/wezterm",
+            "local": "~/.config/wezterm"
+        },
+        "yazi": {
+            "repo": ".config/yazi",
+            "local": "~/.config/yazi"
+        },
+        "zsh": {
+            "repo": "unix/zsh/.zshrc",
+            "local": "~/.zshrc"
+        },
+        "claude_settings": {
+            "repo": "ai/config/claude-settings.json",
+            "local": "~/.claude/settings.json"
+        },
+        "claude_statusline": {
+            "repo": "ai/config/claude-statusline.sh",
+            "local": "~/.claude/statusline.sh"
+        },
+        "opencode_settings": {
+            "repo": "ai/config/opencode-settings.json",
+            "local": "~/.config/opencode/opencode.json"
+        }
+    }
+}
