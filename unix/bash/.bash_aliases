@@ -119,10 +119,19 @@ function cd() {
 }
 
 function ghdown() {
-    url=$(python3 -c "import urllib.parse; print(f'https://ghfast.top/?q={urllib.parse.quote(input())}')" <<<"$1")
-    output="${2:-$(pwd)}"/$(basename "$1")
-    curl --silent --fail --show-error -L "$url" --output "${output}"
-    echo "save to ${output}"
+    local url="$1"
+    local output_dir="${2:-$(pwd)}"
+    local output_file="$output_dir/$(basename "$1")"
+
+    if [[ "$url" == *"github.com"* ]]; then
+        local proxy_url
+        proxy_url=$(python3 -c "import urllib.parse; print(f'https://ghfast.top/?q={urllib.parse.quote(input())}')" <<<"$url")
+        curl -# --fail --show-error -L "$proxy_url" --output "$output_file"
+    else
+        curl -# --fail --show-error -L "$url" --output "$output_file"
+    fi
+
+    echo "save to ${output_file}"
 }
 
 function sep() {
