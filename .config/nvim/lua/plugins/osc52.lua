@@ -1,18 +1,20 @@
 return {
     "ojroques/nvim-osc52",
     config = function()
-        local function copy(lines, _)
-            require("osc52").copy(table.concat(lines, "\n"))
-        end
+        local osc52 = require("osc52")
 
-        local function paste()
-            return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
-        end
-
-        vim.g.clipboard = {
-            name = "osc52",
-            copy = { ["+"] = copy, ["*"] = copy },
-            paste = { ["+"] = paste, ["*"] = paste },
-        }
+        -- 任何 yank 操作都通过 OSC52 发送到系统剪贴板（类似 vim 的 TextYankPost 方式）
+        vim.api.nvim_create_autocmd("TextYankPost", {
+            pattern = "*",
+            callback = function()
+                if vim.v.event.operator == "y" then
+                    local regname = vim.v.event.regname
+                    -- "" (unnamed), +, * 寄存器的 yank 都触发
+                    if regname == "" or regname == nil or regname == "+" or regname == "*" then
+                        osc52.copy(vim.fn.getreg(regname or "+"))
+                    end
+                end
+            end,
+        })
     end,
 }
