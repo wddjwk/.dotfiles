@@ -45,16 +45,8 @@
         "wezterm": ".config/wezterm",
 		"yazi": ".config/yazi",
         "zsh": "unix/zsh/.zshrc",
-        "claude_settings": "ai/agents/claude-settings.json",
-        "claude_agent_md": "ai/agents/AGENTS.md",
-        "claude_skills": "ai/agents/skills",
-        "claude_rules": "ai/agents/rules",
-        "opencode_settings": "ai/agents/opencode-settings.json",
-        "opencode_agent_md": "ai/agents/AGENTS.md",
-        "opencode_skills": "ai/agents/skills",
-        "opencode_rules": "ai/agents/rules",
-        "copilot_agent_md": "ai/agents/AGENTS.md",
-        "copilot_skills": "ai/agents/skills",
-        "copilot_rules": "ai/agents/rules"
+        "claude_settings": "ai/config/claude-settings.json",
+        "claude_statusline": "ai/config/claude-statusline.sh",
+        "opencode_settings": "ai/config/opencode-settings.json"
 	}
 }
