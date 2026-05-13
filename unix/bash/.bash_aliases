@@ -36,6 +36,19 @@ alias today='date "+%Y%m%d"'
 alias now='date "+%Y-%m-%d %H:%M:%S"'
 alias timestamp='date +%s'
 
+# Agent
+
+alias copilot='copilot --yolo'
+
+alias claude='claude --model deepseek-v4-flash --allow-dangerously-skip-permissions'
+alias claude-flash='claude --model deepseek-v4-flash --allow-dangerously-skip-permissions'
+alias claude-pro='claude --model deepseek-v4-pro --allow-dangerously-skip-permissions'
+
+alias qoder='qodercli --yolo --model Ultimate'
+alias qoder-dsf='qodercli --yolo --model DeepSeek-V4-Flash'
+alias qoder-dsp='qodercli --yolo --model DeepSeek-V4-Pro'
+alias qoder-glm='qodercli --yolo --model GLM-5.1'
+alias poder='qodercli --yolo -p --model DeepSeek-V4-Pro'
 
 # 彩色的less（彩色man手册）
 export LESS_TERMCAP_mb=$'\e[01;31m'    # 开始加粗（红色）
