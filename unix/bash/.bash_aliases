@@ -50,6 +50,9 @@ alias qoder-dsp='qodercli --yolo --model DeepSeek-V4-Pro'
 alias qoder-glm='qodercli --yolo --model GLM-5.1'
 alias poder='qodercli --yolo -p --model DeepSeek-V4-Pro'
 
+alias codebuddy='codebuddy --permission-mode bypassPermissions --model deepseek-v4-pro'
+alias codebuddy-flash='codebuddy --permission-mode bypassPermissions --model deepseek-v4-flash'
+
 # 彩色的less（彩色man手册）
 export LESS_TERMCAP_mb=$'\e[01;31m'    # 开始加粗（红色）
 export LESS_TERMCAP_md=$'\e[01;31m'    # 加粗（红色）
