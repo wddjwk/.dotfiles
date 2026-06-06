@@ -9,10 +9,11 @@
     editor = nvim
     autocrlt = input
     pager = delta
+	autocrlf = input
 	symlinks = true
 
 [pull]
-	rebase = false
+	rebase = true
 
 ; [merge]
 ;     conflictstyle = zdiff3
