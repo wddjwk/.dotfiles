@@ -11,7 +11,7 @@
     pager = delta
 
 [pull]
-	rebase = false
+	rebase = true
 
 ; [merge]
 ;     conflictstyle = zdiff3
