@@ -46,31 +46,31 @@
         },
         "lazygit": {
             "repo": ".config/lazygit/config.yml",
-            "local": "~/AppData/Local/lazygit/config.yml"
+            "local": "${LOCALAPPDATA}/lazygit/config.yml"
         },
         "nvim": {
             "repo": ".config/nvim",
-            "local": "~/AppData/Local/nvim"
+            "local": "${LOCALAPPDATA}/nvim"
         },
         "clangd": {
             "repo": ".config/clangd/config.yaml",
-            "local": "~/AppData/Local/clangd/config.yaml"
+            "local": "${LOCALAPPDATA}/clangd/config.yaml"
         },
         "helix": {
             "repo": "helix/config.toml",
-            "local": "~/AppData/Roaming/helix/config.toml"
+            "local": "${APPDATA}/helix/config.toml"
         },
         "vscode_setting": {
             "repo": "vscode/settings.json",
-            "local": "~/AppData/Roaming/Code/User/settings.json"
+            "local": "${APPDATA}/Code/User/settings.json"
         },
         "vscode_key": {
             "repo": "vscode/keybindings.json",
-            "local": "~/AppData/Roaming/Code/User/keybindings.json"
+            "local": "${APPDATA}/Code/User/keybindings.json"
         },
         "vscode_snippets": {
             "repo": "vscode/snippets",
-            "local": "~/AppData/Roaming/Code/User/snippets"
+            "local": "${APPDATA}/Code/User/snippets"
         },
         "wezterm": {
             "repo": ".config/wezterm",
@@ -78,7 +78,7 @@
         },
         "yazi": {
             "repo": ".config/yazi",
-            "local": "~/AppData/Roaming/yazi/config"
+            "local": "${APPDATA}/yazi/config"
         }
     },
     "linux": {

@@ -65,6 +65,11 @@ def os_key() -> str:
 def load_variables() -> dict:
     """Load template variables from local.json; defaults to ~."""
     defaults = {"bash_home": "~"}
+    if platform.system() == "Windows":
+        if os.environ.get("APPDATA"):
+            defaults["APPDATA"] = os.environ["APPDATA"]
+        if os.environ.get("LOCALAPPDATA"):
+            defaults["LOCALAPPDATA"] = os.environ["LOCALAPPDATA"]
     if os.path.exists(LOCAL_CONF):
         with open(LOCAL_CONF, "r", encoding="utf-8") as f:
             data = json.load(f)
