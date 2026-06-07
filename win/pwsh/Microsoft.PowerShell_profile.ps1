@@ -35,9 +35,13 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+a' -Function BeginningOfLine
 #  常用别名
 # ==============================================
 
+# ========== Remove PowerShell built-in aliases conflicting with coreutils ==========
+# ========== scoop installuutils-coreutils ==========
+foreach ($cmd in @('cat', 'cp', 'dir', 'echo', 'ls', 'mv', 'pwd', 'rm', 'rmdir', 'sleep', 'sort', 'tee')) {
+    Remove-Alias -Name $cmd -Force -ErrorAction SilentlyContinue
+}
+
 Set-Alias -Name ls -Value lsd.exe
-Set-Alias -Name rm -Value Remove-UnixItem -Option AllScope
-Set-Alias -Name ln -Value New-UnixLink   -Option AllScope
 Set-Alias -Name cd -Value Set-Location-Unix -Option AllScope
 Set-Alias -Name du -Value dust.exe
 Set-Alias -Name df -Value duf.exe
@@ -58,10 +62,10 @@ function Set-Location-Unix {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$args)
 
     $target = if ($args.Count -eq 0) { $HOME }
-              elseif ($args.Count -eq 1 -and $args[0] -eq '-') {
-                  if ($env:OLDPWD) { $env:OLDPWD } else { Write-Error "cd: OLDPWD not set"; return 1 }
-              }
-              else { $args[0] }
+    elseif ($args.Count -eq 1 -and $args[0] -eq '-') {
+        if ($env:OLDPWD) { $env:OLDPWD } else { Write-Error "cd: OLDPWD not set"; return 1 }
+    }
+    else { $args[0] }
 
     $oldPwd = (Get-Location).Path
 
@@ -71,10 +75,12 @@ function Set-Location-Unix {
             $parent = Split-Path -Parent $fullPath
             if (-not $parent) { $parent = (Get-Location).Path }
             Set-Location -LiteralPath $parent -ErrorAction Stop
-        } else {
+        }
+        else {
             Set-Location -LiteralPath $target -ErrorAction Stop
         }
-    } catch {
+    }
+    catch {
         Write-Error "cd: ${target}: $_"; return 1
     }
 
@@ -85,10 +91,10 @@ function Set-Location-Unix {
     while ($searchDir) {
         $root = [IO.Path]::GetPathRoot($searchDir)
         $dockerVenv = Join-Path $searchDir '.venv-docker'
-        $stdVenv    = Join-Path $searchDir '.venv'
+        $stdVenv = Join-Path $searchDir '.venv'
         if ($env:USERNAME -eq 'user' -and
             ((Test-Path (Join-Path $dockerVenv 'bin/activate')) -or
-             (Test-Path (Join-Path $dockerVenv 'Scripts/Activate.ps1')))) {
+            (Test-Path (Join-Path $dockerVenv 'Scripts/Activate.ps1')))) {
             $venvPath = $dockerVenv; break
         }
         if ((Test-Path (Join-Path $stdVenv 'bin/activate')) -or
@@ -107,76 +113,9 @@ function Set-Location-Unix {
             }
             if (Test-Path $activate) { . $activate }
         }
-    } elseif ($env:VIRTUAL_ENV -and (Get-Command deactivate -ErrorAction SilentlyContinue)) {
+    }
+    elseif ($env:VIRTUAL_ENV -and (Get-Command deactivate -ErrorAction SilentlyContinue)) {
         deactivate
-    }
-}
-
-function Remove-UnixItem {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$args)
-    $force = $false; $recurse = $false; $paths = [System.Collections.Generic.List[string]]::new()
-    foreach ($a in $args) {
-        if ($a -match '^-') {
-            $f = $a -replace '^-+', ''
-            if ($f -match '^[rf]+$') {
-                if ($f -match 'r') { $recurse = $true }
-                if ($f -match 'f') { $force = $true }
-            }
-            else {
-                Write-Error "rm: unknown option: $a"; return 1
-            }
-        }
-        else {
-            $paths.Add($a)
-        }
-    }
-    if ($paths.Count -eq 0) { Write-Error "rm: missing operand"; return 1 }
-    foreach ($p in $paths) {
-        if (-not (Test-Path -LiteralPath $p)) {
-            if (-not $force) { Write-Error "rm: cannot remove '$p': No such file or directory" }
-            continue
-        }
-        try { Remove-Item -LiteralPath $p -Force:$force -Recurse:$recurse -ErrorAction Stop }
-        catch { if (-not $force) { Write-Error "rm: $_" } }
-    }
-}
-
-function New-UnixLink {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$args)
-    $symbolic = $false; $force = $false; $pos = [System.Collections.Generic.List[string]]::new()
-    foreach ($a in $args) {
-        if ($a -match '^-') {
-            $f = $a -replace '^-+', ''
-            if ($f -match '^[sfn]+$') {
-                if ($f -match 's') { $symbolic = $true }
-                if ($f -match 'f') { $force = $true }
-            }
-            else {
-                Write-Error "ln: unknown option: $a"; return 1
-            }
-        }
-        else {
-            $pos.Add($a)
-        }
-    }
-    if ($pos.Count -eq 0) { Write-Error "ln: missing file operand"; return 1 }
-    $target = $pos[0]
-    $linkName = if ($pos.Count -ge 2) { $pos[1] } else { Split-Path $target -Leaf }
-    if (Test-Path -LiteralPath $linkName) {
-        if (-not $force) { Write-Error "ln: failed to create '$linkName': File exists"; return 1 }
-        Remove-Item -LiteralPath $linkName -Force -Recurse
-    }
-    try {
-        if ($symbolic) {
-            New-Item -ItemType SymbolicLink -Path $linkName -Target $target -ErrorAction Stop | Out-Null
-        }
-        else {
-            $full = (Resolve-Path -LiteralPath $target -ErrorAction Stop).Path
-            New-Item -ItemType HardLink -Path $linkName -Target $full -ErrorAction Stop | Out-Null
-        }
-    }
-    catch {
-        Write-Error "ln: $_"; return 1
     }
 }
 
