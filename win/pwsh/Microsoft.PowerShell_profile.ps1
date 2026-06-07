@@ -2,15 +2,19 @@
 #  PowerShell 主配置
 # ==============================================
 
-# ========== 编辑器 ==========
+# Set-Variable PROXY_URL "http://192.168.31.102:7890"
+
+# $env:HTTP_PROXY = $PROXY_URL
+# $env:HTTPS_PROXY = $PROXY_URL
 $env:EDITOR = 'subl.exe'
+$env:SHELL = 'pwsh.exe'
+
+# ========== 配置文件编辑 ==========
 
 function Invoke-Editor {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$args)
     & $env:EDITOR @args
 }
-
-# ========== 配置文件编辑 ==========
 
 function Edit-MainProfile { Invoke-Editor $PROFILE }
 function Edit-LocalProfile { Invoke-Editor (Join-Path (Split-Path $PROFILE) 'local_profile.ps1') }
@@ -23,20 +27,11 @@ Set-Alias -Name vime  -Value Edit-EnvProfile
 Set-Alias -Name sb    -Value $PROFILE
 
 # ==============================================
-#  快捷键映射
-# ==============================================
-
-Set-PSReadLineKeyHandler -Chord 'Ctrl+u' -Function BackwardDeleteLine
-Set-PSReadLineKeyHandler -Chord 'Ctrl+k' -Function ForwardDeleteLine
-Set-PSReadLineKeyHandler -Chord 'Ctrl+e' -Function EndOfLine
-Set-PSReadLineKeyHandler -Chord 'Ctrl+a' -Function BeginningOfLine
-
-# ==============================================
 #  常用别名
 # ==============================================
 
 # ========== Remove PowerShell built-in aliases conflicting with coreutils ==========
-# ========== scoop installuutils-coreutils ==========
+# ========== [NEED] scoop installuutils-coreutils ==========
 foreach ($cmd in @('cat', 'cp', 'dir', 'echo', 'ls', 'mv', 'pwd', 'rm', 'rmdir', 'sleep', 'sort', 'tee')) {
     Remove-Alias -Name $cmd -Force -ErrorAction SilentlyContinue
 }
@@ -53,10 +48,45 @@ Set-Alias -Name vim  -Value Invoke-Editor
 Set-Alias -Name fvim -Value fedit
 Set-Alias -Name rvim -Value redit
 
+# ==============================================
+#  快捷键映射
+# ==============================================
+
+Set-PSReadLineKeyHandler -Chord 'Ctrl+u' -Function BackwardDeleteLine
+Set-PSReadLineKeyHandler -Chord 'Ctrl+k' -Function ForwardDeleteLine
+Set-PSReadLineKeyHandler -Chord 'Ctrl+e' -Function EndOfLine
+Set-PSReadLineKeyHandler -Chord 'Ctrl+a' -Function BeginningOfLine
 
 # ==============================================
 #  常用函数
 # ==============================================
+
+function proxy {
+    $env:HTTP_PROXY = $PROXY_URL
+    $env:HTTPS_PROXY = $PROXY_URL
+    if ($args.Count -gt 0) {
+        $cmd = $args[0]
+        $rest = $args[1..($args.Count - 1)]
+        & $cmd @rest
+    }
+}
+
+function noproxy {
+    $old = @{
+        HTTP_PROXY  = $env:HTTP_PROXY
+        HTTPS_PROXY = $env:HTTPS_PROXY
+        ALL_PROXY   = $env:ALL_PROXY
+    }
+    Remove-Item Env:\HTTP_PROXY, Env:\HTTPS_PROXY, Env:\http_proxy, Env:\https_proxy, Env:\ALL_PROXY, Env:\all_proxy -ErrorAction SilentlyContinue
+    if ($args.Count -gt 0) {
+        $cmd = $args[0]
+        $rest = $args[1..($args.Count - 1)]
+        & $cmd @rest
+    }
+    foreach ($k in $old.Keys) {
+        if ($null -ne $old[$k]) { Set-Item "Env:\$k" $old[$k] }
+    }
+}
 
 function Set-Location-Unix {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$args)
@@ -182,6 +212,59 @@ function global:prompt {
     "$bracketColor[$userColor$user$atColor@$hostColor$hostname " +
     "$pathColor$currentPath$bracketColor]$promptColor`$$ANSI_RESET "
 }
+
+# ========== 基础变量 ==========
+Set-Variable ESC "$([char]27)"
+Set-Variable ANSI_RESET "$ESC[0m"
+
+# ========== 基础颜色 ==========
+Set-Variable ANSI_BLACK "$ESC[30m"
+Set-Variable ANSI_RED "$ESC[31m"
+Set-Variable ANSI_GREEN "$ESC[32m"
+Set-Variable ANSI_YELLOW "$ESC[33m"
+Set-Variable ANSI_BLUE "$ESC[34m"
+Set-Variable ANSI_MAGENTA "$ESC[35m"
+Set-Variable ANSI_CYAN "$ESC[36m"
+Set-Variable ANSI_WHITE "$ESC[37m"
+
+# ========== 亮色模式 ==========
+Set-Variable ANSI_BRIGHT_BLACK "$ESC[90m"
+Set-Variable ANSI_BRIGHT_RED "$ESC[91m"
+Set-Variable ANSI_BRIGHT_GREEN "$ESC[92m"
+Set-Variable ANSI_BRIGHT_YELLOW "$ESC[93m"
+Set-Variable ANSI_BRIGHT_BLUE "$ESC[94m"
+Set-Variable ANSI_BRIGHT_MAGENTA "$ESC[95m"
+Set-Variable ANSI_BRIGHT_CYAN "$ESC[96m"
+Set-Variable ANSI_BRIGHT_WHITE "$ESC[97m"
+
+# ========== 背景颜色 ==========
+Set-Variable ANSI_BG_BLACK "$ESC[40m"
+Set-Variable ANSI_BG_RED "$ESC[41m"
+Set-Variable ANSI_BG_GREEN "$ESC[42m"
+Set-Variable ANSI_BG_YELLOW "$ESC[43m"
+Set-Variable ANSI_BG_BLUE "$ESC[44m"
+Set-Variable ANSI_BG_MAGENTA "$ESC[45m"
+Set-Variable ANSI_BG_CYAN "$ESC[46m"
+Set-Variable ANSI_BG_WHITE "$ESC[47m"
+
+# ========== 256色扩展 ==========
+Set-Variable ANSI_ORANGE "$ESC[38;5;208m"
+Set-Variable ANSI_PURPLE "$ESC[38;5;93m"
+Set-Variable ANSI_PINK "$ESC[38;5;205m"
+Set-Variable ANSI_LIME "$ESC[38;5;154m"
+Set-Variable ANSI_GRAY "$ESC[38;5;245m"
+
+# ========== RGB自定义颜色 ==========
+Set-Variable ANSI_RGB_EMERALD "$ESC[38;2;80;200;120m"
+Set-Variable ANSI_RGB_SUNSET "$ESC[38;2;255;94;77m"
+Set-Variable ANSI_RGB_OCEAN "$ESC[38;2;0;155;255m"
+
+# ========== 格式样式 ==========
+Set-Variable ANSI_BOLD "$ESC[1m"
+Set-Variable ANSI_DIM "$ESC[2m"
+Set-Variable ANSI_ITALIC "$ESC[3m"
+Set-Variable ANSI_UNDERLINE "$ESC[4m"
+Set-Variable ANSI_BLINK "$ESC[5m"
 
 # ==============================================
 #  加载本地配置 (路径相关的别名与函数)
