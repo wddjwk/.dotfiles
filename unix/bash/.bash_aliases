@@ -134,6 +134,21 @@ function cd() {
     fi
 }
 
+aiupdate() {
+    for t in copilot claude codex qodercli; do
+        command -v "$t" && {
+            echo "⏳ Updating $t..."
+            { "$t" update && echo "✅ $t done" || echo "❌ $t failed"; } &
+        }
+    done
+    command -v opencode && {
+        echo "⏳ Updating opencode..."
+        { opencode upgrade && echo "✅ opencode done" || echo "❌ opencode failed"; } &
+    }
+    wait
+    echo "🎉 All updates completed."
+}
+
 function ghdown() {
     local url="$1"
     local output_dir="${2:-$(pwd)}"
@@ -271,19 +286,28 @@ alias tmuxkillall='tmux kill-server'
 
 tmuxn() {
     local a c="" cmds=() sn n i=0
-    for a in "$@"; do [[ "$a" == "+" ]] && { cmds+=("$c"); c=""; } || c="${c:+$c }$a"; done
+    for a in "$@"; do [[ "$a" == "+" ]] && {
+        cmds+=("$c")
+        c=""
+    } || c="${c:+$c }$a"; done
     [[ -n "$c" ]] && cmds+=("$c")
-    (( ${#cmds[@]} )) || { echo "Usage: tmuxn cmd1 + cmd2 ..."; return 1; }
+    ((${#cmds[@]})) || {
+        echo "Usage: tmuxn cmd1 + cmd2 ..."
+        return 1
+    }
 
     sn="cs_$(basename "${cmds[0]%% *}")"
     n=${#cmds[@]}
 
     for c in "${cmds[@]}"; do
-        if (( i++ == 0 )); then
+        if ((i++ == 0)); then
             tmux kill-session -t "$sn" 2>/dev/null
             tmux new-session -d -s "$sn"
         else
-            (( n==2 )) && tmux split-window -h -t "$sn" || { tmux split-window -t "$sn"; tmux select-layout -t "$sn" tiled > /dev/null; }
+            ((n == 2)) && tmux split-window -h -t "$sn" || {
+                tmux split-window -t "$sn"
+                tmux select-layout -t "$sn" tiled >/dev/null
+            }
         fi
         tmux send-keys -t "$sn" "$c" C-m
         sleep 0.5
@@ -391,9 +415,11 @@ fkill() {
 
 ftmuxkill() {
     local items target type id
-    items=$(tmux list-sessions -F "S:#{session_name}|  [Session] #{session_name} (#{session_windows} windows)" 2>/dev/null;
-            tmux list-windows -a -F "W:#{session_name}:#{window_index}|   [Window] #{session_name}:#{window_index} \"#{window_name}\"" 2>/dev/null;
-            tmux list-panes -a -F "P:#{session_name}:#{window_index}.#{pane_index}|    [Pane] #{session_name}:#{window_index}.#{pane_index} [#{pane_current_command}]" 2>/dev/null)
+    items=$(
+        tmux list-sessions -F "S:#{session_name}|  [Session] #{session_name} (#{session_windows} windows)" 2>/dev/null
+        tmux list-windows -a -F "W:#{session_name}:#{window_index}|   [Window] #{session_name}:#{window_index} \"#{window_name}\"" 2>/dev/null
+        tmux list-panes -a -F "P:#{session_name}:#{window_index}.#{pane_index}|    [Pane] #{session_name}:#{window_index}.#{pane_index} [#{pane_current_command}]" 2>/dev/null
+    )
 
     [[ -z "$items" ]] && echo "No tmux sessions found." && return
 
@@ -405,9 +431,9 @@ ftmuxkill() {
         type=${t%%:*}
         id=${t#*:}
         case "$type" in
-            S) tmux kill-session -t "$id" 2>/dev/null ;;
-            W) tmux kill-window -t "$id" 2>/dev/null ;;
-            P) tmux kill-pane -t "$id" 2>/dev/null ;;
+        S) tmux kill-session -t "$id" 2>/dev/null ;;
+        W) tmux kill-window -t "$id" 2>/dev/null ;;
+        P) tmux kill-pane -t "$id" 2>/dev/null ;;
         esac
     done
 }
