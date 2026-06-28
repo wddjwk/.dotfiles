@@ -61,6 +61,22 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+a' -Function BeginningOfLine
 #  常用函数
 # ==============================================
 
+function aiupdate {
+    $j = @()
+    foreach ($t in @('copilot', 'claude', 'codex', 'qodercli')) {
+        if (Get-Command $t -ea 0) {
+            Write-Host "⏳ Updating $t..."
+            $j += Start-Job { & $args[0] update; if ($?) { Write-Host "✅ $($args[0]) done" }else { Write-Host "❌ $($args[0]) failed" } } -Arg $t
+        }
+    }
+    if (Get-Command opencode -ea 0) {
+        Write-Host "⏳ Updating opencode..."
+        $j += Start-Job { & opencode upgrade; if ($?) { Write-Host "✅ opencode done" }else { Write-Host "❌ opencode failed" } }
+    }
+    if ($j) { $j | Wait-Job | Out-Null; $j | Remove-Job }
+    Write-Host "🎉 All updates completed."
+}
+
 function proxy {
     $env:HTTP_PROXY = $PROXY_URL
     $env:HTTPS_PROXY = $PROXY_URL
