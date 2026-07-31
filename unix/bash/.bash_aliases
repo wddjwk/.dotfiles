@@ -1,23 +1,10 @@
-# tools
 alias ll='ls -alhF --color=auto'
 alias la='ls -aF --color=auto'
 alias l='ls -ahF --color=none'
 alias gdb='gdb -q'
 
-# git
-alias gitc='git checkout'
-alias gitl='git log'
-alias gitlg='git log --graph'
-alias gitlo='git log --oneline'
 alias gitlog='git log --oneline --graph'
-alias gitloga='git log --oneline --graph --all'
-alias gitrebase='git rebase --interactive --autostash --keep-empty --no-autosquash --rebase-merges'
-alias gitpullorigin='git pull origin $(git branch --show-current)'
-function gitcheckoutremote() {
-    git checkout --track origin/"$1"
-}
 
-# convinence
 alias PATH='echo $PATH | xargs -d: -n1'
 alias cman='man -M /usr/share/man/zh_CN'
 alias sb='source ~/.bashrc'
@@ -30,82 +17,14 @@ alias vima='vim ~/.bash_aliases'
 alias vimal='vim ~/.bash_aliases_local'
 alias vime='vim ~/.bash_env'
 
-alias fzf='fzf --ansi --smart-case'
-alias fzf-view="fzf --preview-window=up --preview='bat --color always {}'"
 alias today='date "+%Y%m%d"'
 alias now='date "+%Y-%m-%d %H:%M:%S"'
 alias timestamp='date +%s'
 
-# Agent
+#########################################################################
+# COMMON
+#########################################################################
 
-alias copilot='copilot --yolo'
-
-alias claude='claude --model deepseek-v4-flash --allow-dangerously-skip-permissions'
-alias claude-flash='claude --model deepseek-v4-flash --allow-dangerously-skip-permissions'
-alias claude-pro='claude --model deepseek-v4-pro --allow-dangerously-skip-permissions'
-
-alias qoder='qodercli --yolo --model Ultimate'
-alias qoder-dsf='qodercli --yolo --model DeepSeek-V4-Flash'
-alias qoder-dsp='qodercli --yolo --model DeepSeek-V4-Pro'
-alias qoder-glm='qodercli --yolo --model GLM-5.1'
-alias poder='qodercli --yolo -p --model DeepSeek-V4-Pro'
-
-alias codebuddy='codebuddy --permission-mode bypassPermissions --model deepseek-v4-pro'
-alias codebuddy-flash='codebuddy --permission-mode bypassPermissions --model deepseek-v4-flash'
-
-# 彩色的less（彩色man手册）
-export LESS_TERMCAP_mb=$'\e[01;31m'    # 开始加粗（红色）
-export LESS_TERMCAP_md=$'\e[01;31m'    # 加粗（红色）
-export LESS_TERMCAP_me=$'\e[0m'        # 结束加粗
-export LESS_TERMCAP_so=$'\e[01;44;33m' # 高亮背景（黄色文字，蓝色背景）
-export LESS_TERMCAP_se=$'\e[0m'        # 结束高亮
-export LESS_TERMCAP_us=$'\e[01;32m'    # 下划线（绿色）
-export LESS_TERMCAP_ue=$'\e[0m'        # 结束下划线
-export LESS_TERMCAP_mr=$'\e[01;31m'    # 反显（红色）
-export LESS_TERMCAP_mh=$'\e[01;34m'    # 半高亮（蓝色）
-
-# ANSI 颜色
-ANSI_RESET="\e[0m"
-ANSI_BOLD="\e[1m"
-ANSI_DIM="\e[2m"
-ANSI_ITALIC="\e[3m"
-ANSI_UNDERLINE="\e[4m"
-ANSI_BLINK="\e[5m"
-
-ANSI_BG_BLACK="\e[40m"
-ANSI_BG_BLUE="\e[44m"
-ANSI_BG_CYAN="\e[46m"
-ANSI_BG_GREEN="\e[42m"
-ANSI_BG_MAGENTA="\e[45m"
-ANSI_BG_RED="\e[41m"
-ANSI_BG_WHITE="\e[47m"
-ANSI_BG_YELLOW="\e[43m"
-ANSI_FG_BLACK="\e[30m"
-ANSI_FG_BLUE="\e[34m"
-ANSI_FG_BRIGHT_BLACK="\e[90m"
-ANSI_FG_BRIGHT_BLUE="\e[94m"
-ANSI_FG_BRIGHT_CYAN="\e[96m"
-ANSI_FG_BRIGHT_GREEN="\e[92m"
-ANSI_FG_BRIGHT_MAGENTA="\e[95m"
-ANSI_FG_BRIGHT_RED="\e[91m"
-ANSI_FG_BRIGHT_WHITE="\e[97m"
-ANSI_FG_BRIGHT_YELLOW="\e[93m"
-ANSI_FG_CYAN="\e[36m"
-ANSI_FG_GRAY="\e[38;5;245m"
-ANSI_FG_GREEN="\e[32m"
-ANSI_FG_LIME="\e[38;5;154m"
-ANSI_FG_MAGENTA="\e[35m"
-ANSI_FG_ORANGE="\e[38;5;208m"
-ANSI_FG_PINK="\e[38;5;205m"
-ANSI_FG_PURPLE="\e[38;5;93m"
-ANSI_FG_RED="\e[31m"
-ANSI_FG_RGB_EMERALD="\e[38;2;80;200;120m"
-ANSI_FG_RGB_OCEAN="\e[38;2;0;155;255m"
-ANSI_FG_RGB_SUNSET="\e[38;2;255;94;77m"
-ANSI_FG_WHITE="\e[37m"
-ANSI_FG_YELLOW="\e[33m"
-
-# functions
 function cd() {
     if [[ -f "$1" ]]; then
         builtin cd "$(dirname "$1")" || return
@@ -132,21 +51,6 @@ function cd() {
     elif [[ -n "$VIRTUAL_ENV" ]] && declare -f deactivate >/dev/null; then
         deactivate
     fi
-}
-
-aiupdate() {
-    for t in copilot claude codex qodercli; do
-        command -v "$t" && {
-            echo "⏳ Updating $t..."
-            { "$t" update && echo "✅ $t done" || echo "❌ $t failed"; } &
-        }
-    done
-    command -v opencode && {
-        echo "⏳ Updating opencode..."
-        { opencode upgrade && echo "✅ opencode done" || echo "❌ opencode failed"; } &
-    }
-    wait
-    echo "🎉 All updates completed."
 }
 
 function ghdown() {
@@ -213,73 +117,41 @@ install() {
     sudo mv "$@" /usr/local/bin/
 }
 
-# 编译运行
-mk() {
-    if [ "$#" -ne 1 ]; then
-        echo "Usage: mk <filename>"
-        return 1
+_ibash() {
+    local cur=${COMP_WORDS[1]}
+    if [[ $COMP_CWORD == 1 ]]; then
+        COMPREPLY=($(compgen -c -- "$cur"))
+    else
+        local cmd=${COMP_WORDS[1]}
+        if [[ -n $cmd && $(type -t _command_offset 2>/dev/null) == function ]]; then
+            COMP_WORDS=("${COMP_WORDS[@]:1}")
+            COMP_CWORD=$((COMP_CWORD - 1))
+            _command_offset 0 "$cmd"
+        else
+            COMPREPLY=($(compgen -f -- "${COMP_WORDS[COMP_CWORD]}"))
+        fi
     fi
+}
+complete -F _ibash ibash
 
-    local file="$1"
-    local extension="${file##*.}"
-    local base="${file%.*}"
-
-    if [ ! -f "$file" ]; then
-        echo "File '$file' does not exist."
-        return 1
-    fi
-
-    case "$extension" in
-    cpp | cc | cxx)
-        echo "Compiling C++ file '$file'..."
-        g++ "$file" -o "$base" -std=c++20 -g
-        if [ $? -eq 0 ]; then
-            echo "Running executable '$base'..."
-            ./"$base"
-        else
-            echo "Compilation failed."
-        fi
-        ;;
-    c)
-        echo "Compiling C file '$file'..."
-        gcc "$file" -o "$base" -g
-        if [ $? -eq 0 ]; then
-            echo "Running executable '$base'..."
-            ./"$base"
-        else
-            echo "Compilation failed."
-        fi
-        ;;
-    py)
-        echo "Running Python file '$file'..."
-        python3 "$file"
-        ;;
-    sh)
-        echo "Running shell script '$file'..."
-        bash "$file"
-        ;;
-    lua)
-        echo "Running Lua script '$file'..."
-        lua "$file"
-        ;;
-    go)
-        echo "Compiling Go file '$file'..."
-        go build -o "$base" "$file"
-        if [ $? -eq 0 ]; then
-            echo "Running executable '$base'..."
-            ./"$base"
-        else
-            echo "Compilation failed."
-        fi
-        ;;
-    *)
-        echo "Unsupported file type: .$extension"
-        return 1
-        ;;
-    esac
+## specific wrapper
+subl() {
+    local win_path
+    for p in "$@"; do
+        win_path=$(wslpath -w "$p")
+        set -- "$@" "$win_path"
+        shift
+    done
+    subl.exe "$@"
 }
 
-## quick tmux
+#########################################################################
+# FZF + fd/rg/tmux...
+#########################################################################
+
+alias fzf='fzf --ansi --smart-case'
+alias fzf-view="fzf --preview-window=up --preview='bat --color always {}'"
+alias flog='fzf --tac --no-sort --border --ansi --multi'
 
 alias tmuxkillall='tmux kill-server'
 # alias tmuxkillall="tmux list-sessions | awk -F: '{print $1}' | xargs -n 1 tmux kill-session -t"
@@ -317,24 +189,6 @@ tmuxn() {
     tmux attach-session -t "$sn"
 }
 
-## rg + fzf
-rvim() {
-    local file
-    file=$(rg "$@" -l | fzf) && vim "$file"
-}
-
-rnvim() {
-    local file
-    file=$(rg "$@" -l | fzf) && nvim "$file"
-}
-
-## locate + fzf
-lnvim() {
-    local file
-    file=$(locate "$@" | fzf) && nvim $file
-}
-
-## fd + fzf
 ftmux2() {
     local server client
     server=$(fd -t f -uu -L . "$@" | fzf)
@@ -350,7 +204,45 @@ ftmux3() {
     tmuxn ${server} ${client1} ${client2}
 }
 
-alias flog='fzf --tac --no-sort --border --ansi --multi'
+ftmuxkill() {
+    local items target type id
+    items=$(
+        tmux list-sessions -F "S:#{session_name}|  [Session] #{session_name} (#{session_windows} windows)" 2>/dev/null
+        tmux list-windows -a -F "W:#{session_name}:#{window_index}|   [Window] #{session_name}:#{window_index} \"#{window_name}\"" 2>/dev/null
+        tmux list-panes -a -F "P:#{session_name}:#{window_index}.#{pane_index}|    [Pane] #{session_name}:#{window_index}.#{pane_index} [#{pane_current_command}]" 2>/dev/null
+    )
+
+    [[ -z "$items" ]] && echo "No tmux sessions found." && return
+
+    target=$(echo "$items" | fzf -m --delimiter="|" --with-nth=2.. | cut -d'|' -f1)
+
+    [[ -z "$target" ]] && return
+
+    echo "$target" | while read t; do
+        type=${t%%:*}
+        id=${t#*:}
+        case "$type" in
+        S) tmux kill-session -t "$id" 2>/dev/null ;;
+        W) tmux kill-window -t "$id" 2>/dev/null ;;
+        P) tmux kill-pane -t "$id" 2>/dev/null ;;
+        esac
+    done
+}
+
+rvim() {
+    local file
+    file=$(rg "$@" -l | fzf) && vim "$file"
+}
+
+rnvim() {
+    local file
+    file=$(rg "$@" -l | fzf) && nvim "$file"
+}
+
+lnvim() {
+    local file
+    file=$(locate "$@" | fzf) && nvim $file
+}
 
 fcd() {
     local dir
@@ -363,15 +255,6 @@ fcd() {
     else
         cd $(dirname "$dir")
     fi
-}
-
-fcdd() {
-    local dir
-    dir=$(fd . -t d "$@" | fzf)
-    if [ -z $dir ]; then
-        return
-    fi
-    cd $dir
 }
 
 fpwd() {
@@ -413,31 +296,6 @@ fkill() {
     fi
 }
 
-ftmuxkill() {
-    local items target type id
-    items=$(
-        tmux list-sessions -F "S:#{session_name}|  [Session] #{session_name} (#{session_windows} windows)" 2>/dev/null
-        tmux list-windows -a -F "W:#{session_name}:#{window_index}|   [Window] #{session_name}:#{window_index} \"#{window_name}\"" 2>/dev/null
-        tmux list-panes -a -F "P:#{session_name}:#{window_index}.#{pane_index}|    [Pane] #{session_name}:#{window_index}.#{pane_index} [#{pane_current_command}]" 2>/dev/null
-    )
-
-    [[ -z "$items" ]] && echo "No tmux sessions found." && return
-
-    target=$(echo "$items" | fzf -m --delimiter="|" --with-nth=2.. | cut -d'|' -f1)
-
-    [[ -z "$target" ]] && return
-
-    echo "$target" | while read t; do
-        type=${t%%:*}
-        id=${t#*:}
-        case "$type" in
-        S) tmux kill-session -t "$id" 2>/dev/null ;;
-        W) tmux kill-window -t "$id" 2>/dev/null ;;
-        P) tmux kill-pane -t "$id" 2>/dev/null ;;
-        esac
-    done
-}
-
 fgit() {
     local hashid
     hashid=$(git lng |
@@ -456,45 +314,10 @@ fhistory() {
     fi
 }
 
-## Complete
-_ibash() {
-    local cur=${COMP_WORDS[1]}
-    if [[ $COMP_CWORD == 1 ]]; then
-        COMPREPLY=($(compgen -c -- "$cur"))
-    else
-        local cmd=${COMP_WORDS[1]}
-        if [[ -n $cmd && $(type -t _command_offset 2>/dev/null) == function ]]; then
-            COMP_WORDS=("${COMP_WORDS[@]:1}")
-            COMP_CWORD=$((COMP_CWORD - 1))
-            _command_offset 0 "$cmd"
-        else
-            COMPREPLY=($(compgen -f -- "${COMP_WORDS[COMP_CWORD]}"))
-        fi
-    fi
-}
-complete -F _ibash ibash
+#########################################################################
+# PERF
+#########################################################################
 
-## specific wrapper
-subl() {
-    local win_path
-    for p in "$@"; do
-        win_path=$(wslpath -w "$p")
-        set -- "$@" "$win_path"
-        shift
-    done
-    subl.exe "$@"
-}
-
-### software manage (only for linux)
-update-nvim() {
-    wget -O /tmp/nvim.tar.gz https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
-    sudo rm -rf /opt/nvim-linux-x86_64
-    sudo tar xf /tmp/nvim.tar.gz -C /opt
-    rm /tmp/nvim.tar.gz
-    echo "DONE!"
-}
-
-### perf
 #（1） perf report：一步到位
 perf_report() {
     sudo perf record -g -- $1 && sudo perf report
@@ -522,44 +345,50 @@ perf_flame() {
     python3 -m http.server --directory ${SvgPath} --bind ${vm_ip} ${vm_port}
 }
 
-########################################
-# DEPRECATED
-########################################
+#########################################################################
+# AI
+#########################################################################
 
-### redis : redisc [host] [port]  &  redisrun  &  redisstop
-AUTH=shuaikaisredis
-alias redisrun='redis-server /home/shuaikai/.redis/redis.conf'
-alias redisstop='redis-cli -a shuaikaisredis SHUTDOWN'
-alias redisc='redis-cli -h localhost -p 6379 -a $AUTH'
+pitidy() {
+  local p=(
+    npm:pi-web-access
+    npm:@ff-labs/pi-fff
+    npm:@tmustier/pi-usage-extension
+    npm:@juicesharp/rpiv-todo
+    npm:pi-btw
+    npm:pi-claude-code-tui
+    https://github.com/gsanhueza/pi-token-speed
+  )
+  local a=() r=() p t x ok cur pcur
+  cur=($(pi list | awk '/^user packages:/{f=1;next} /^project packages:/{f=0} f' | grep -e '^  [^ ]' | sed 's/^  //'))
+  pcur=($(jq -r '.packages[]?' ".pi/settings.json" 2>/dev/null))
+  for p in "${cur[@]}"; do
+    ok=0; for t in "${p[@]}"; do [ "$p" = "$t" ] && ok=1; done
+    if [ $ok -eq 0 ]; then echo "-- pi remove $p"; pi remove "$p" && r+=("$p"); fi
+  done
+  for t in "${p[@]}"; do
+    ok=0; for x in "${pcur[@]}"; do [ "$x" = "$t" ] && ok=1; done
+    if [ $ok -eq 1 ]; then echo "-- pi remove $t -l"; pi remove "$t" -l; fi
+    ok=0; for x in "${cur[@]}"; do [ "$x" = "$t" ] && ok=1; done
+    if [ $ok -eq 0 ]; then echo "-- pi install $t"; pi install "$t" && a+=("$t"); fi
+  done
+  echo "-- pi update"; pi update
+  echo "-- pi update --extensions"; pi update --extensions
+  echo "added:   ${a[*]:-none}"
+  echo "removed: ${r[*]:-none}"
+}
 
-### aliyun-oss : ossup ossupdate ossupdateall ossdowndate ossdowndateall osslsv osslsb ossls ossmkdir ossrm osscat ossdu
-BUCKET=oss://shuaikai-bucket0001
-ossup() {
-    ossutil cp -r $1 $BUCKET/$2 -u
-}
-ossdown() {
-    ossutil cp -r $BUCKET/$1 $2 -u
-}
-ossls() {
-    ossutil ls $BUCKET/$1 -s $2 $3 | sed 's#^oss://shuaikai-bucket0001#https://shuaikai-bucket0001.oss-cn-shanghai.aliyuncs.com#'
-}
-ossla() {
-    ossutil ls $BUCKET -d | sed 's#^oss://shuaikai-bucket0001#https://shuaikai-bucket0001.oss-cn-shanghai.aliyuncs.com#'
-}
-ossmkdir() {
-    ossutil mkdir $BUCKET/$1
-}
-ossrm() {
-    # 兼容下面的 grep
-    ossutil rm $BUCKET/$1 $2 $3 $4
-}
-ossrm-grep() {
-    # 删除所有满足 $2 条件的对象
-    ossutil rm $BUCKET/$1 --include "$2" -r
-}
-osscat() {
-    ossutil cat $BUCKET/$1
-}
-ossdu() {
-    ossutil du $BUCKET/$1 --block-size MB
+aiupdate() {
+    for t in copilot claude codex qodercli; do
+        command -v "$t" && {
+            echo "⏳ Updating $t..."
+            { "$t" update && echo "✅ $t done" || echo "❌ $t failed"; } &
+        }
+    done
+    command -v opencode && {
+        echo "⏳ Updating opencode..."
+        { opencode upgrade && echo "✅ opencode done" || echo "❌ opencode failed"; } &
+    }
+    wait
+    echo "🎉 All updates completed."
 }
