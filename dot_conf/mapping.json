@@ -79,6 +79,10 @@
         "yazi": {
             "repo": ".config/yazi",
             "local": "${APPDATA}/yazi/config"
+        },
+        "pi_extension_shl": {
+            "repo": "scripts/agents/pi/smart-harness-loader.ts",
+            "local": "~/.pi/agent/extensions/smart-harness-loader.ts"
         }
     },
     "linux": {
@@ -185,6 +189,10 @@
         "opencode_settings": {
             "repo": "ai/config/opencode-settings.json",
             "local": "~/.config/opencode/opencode.json"
+        },
+        "pi_extension_shl": {
+            "repo": "scripts/agents/pi/smart-harness-loader.ts",
+            "local": "~/.pi/agent/extensions/smart-harness-loader.ts"
         }
     }
 }
