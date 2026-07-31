@@ -31,7 +31,7 @@ Set-Alias -Name sb    -Value $PROFILE
 # ==============================================
 
 # ========== Remove PowerShell built-in aliases conflicting with coreutils ==========
-# ========== [NEED] scoop installuutils-coreutils ==========
+# ========== [NEED] scoop install uutils-coreutils ==========
 foreach ($cmd in @('cat', 'cp', 'dir', 'echo', 'ls', 'mv', 'pwd', 'rm', 'rmdir', 'sleep', 'sort', 'tee')) {
     Remove-Alias -Name $cmd -Force -ErrorAction SilentlyContinue
 }
@@ -207,6 +207,73 @@ function redit {
         return
     }
     Invoke-Editor $selected
+}
+
+# ==============================================
+#  AI
+# ==============================================
+
+function pitidy {
+    $P = @(
+        'npm:@4fu/pi-pwsh'
+        'npm:pi-web-access'
+        'npm:@ff-labs/pi-fff'
+        'npm:@tmustier/pi-usage-extension'
+        'npm:@juicesharp/rpiv-todo'
+        'npm:pi-btw'
+        'npm:pi-claude-code-tui'
+        'https://github.com/gsanhueza/pi-token-speed'
+    )
+    $a = @(); $r = @()
+    $lines = pi list
+    $u = [Array]::IndexOf($lines, 'User packages:')
+    $pj = [Array]::IndexOf($lines, 'Project packages:')
+    if ($pj -lt 0 -or $pj -le $u) { $pj = $lines.Length }
+    $cur = @($lines[($u + 1)..($pj - 1)] | Select-String -Pattern '^  [^ ]' | ForEach-Object { $_.Line.Trim() })
+    $pcur = @()
+    if (Test-Path .pi/settings.json) {
+        $pcur = @((Get-Content .pi/settings.json -Raw | ConvertFrom-Json).packages)
+    }
+    foreach ($c in $cur) {
+        if ($P -notcontains $c) {
+            Write-Host "-- pi remove $c"
+            pi remove $c
+            if ($LASTEXITCODE -eq 0) { $r += $c }
+        }
+    }
+    foreach ($t in $P) {
+        if ($pcur -contains $t) {
+            Write-Host "-- pi remove $t -l"
+            pi remove $t -l
+        }
+        if ($cur -notcontains $t) {
+            Write-Host "-- pi install $t"
+            pi install $t
+            if ($LASTEXITCODE -eq 0) { $a += $t }
+        }
+    }
+    Write-Host "-- pi update"
+    pi update
+    Write-Host "-- pi update --extensions"
+    pi update --extensions
+    Write-Host "added:   $(if ($a) { $a -join ' ' } else { 'none' })"
+    Write-Host "removed: $(if ($r) { $r -join ' ' } else { 'none' })"
+}
+
+function aiupdate {
+    $j = @()
+    foreach ($t in @('copilot', 'claude', 'codex', 'qodercli', 'pi')) {
+        if (Get-Command $t -ea 0) {
+            Write-Host "⏳ Updating $t..."
+            $j += Start-Job { & $args[0] update; if ($?) { Write-Host "✅ $($args[0]) done" }else { Write-Host "❌ $($args[0]) failed" } } -Arg $t
+        }
+    }
+    if (Get-Command opencode -ea 0) {
+        Write-Host "⏳ Updating opencode..."
+        $j += Start-Job { & opencode upgrade; if ($?) { Write-Host "✅ opencode done" }else { Write-Host "❌ opencode failed" } }
+    }
+    if ($j) { $j | Wait-Job | Out-Null; $j | Remove-Job }
+    Write-Host "🎉 All updates completed."
 }
 
 # ==============================================
