@@ -379,7 +379,7 @@ pitidy() {
 }
 
 aiupdate() {
-    for t in copilot claude codex qodercli; do
+    for t in copilot claude codex qodercli pi; do
         command -v "$t" && {
             echo "⏳ Updating $t..."
             { "$t" update && echo "✅ $t done" || echo "❌ $t failed"; } &
@@ -390,5 +390,6 @@ aiupdate() {
         { opencode upgrade && echo "✅ opencode done" || echo "❌ opencode failed"; } &
     }
     wait
+    pi update --extensions
     echo "🎉 All updates completed."
 }

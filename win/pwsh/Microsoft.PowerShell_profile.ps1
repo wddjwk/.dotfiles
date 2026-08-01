@@ -61,22 +61,6 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+a' -Function BeginningOfLine
 #  常用函数
 # ==============================================
 
-function aiupdate {
-    $j = @()
-    foreach ($t in @('copilot', 'claude', 'codex', 'qodercli')) {
-        if (Get-Command $t -ea 0) {
-            Write-Host "⏳ Updating $t..."
-            $j += Start-Job { & $args[0] update; if ($?) { Write-Host "✅ $($args[0]) done" }else { Write-Host "❌ $($args[0]) failed" } } -Arg $t
-        }
-    }
-    if (Get-Command opencode -ea 0) {
-        Write-Host "⏳ Updating opencode..."
-        $j += Start-Job { & opencode upgrade; if ($?) { Write-Host "✅ opencode done" }else { Write-Host "❌ opencode failed" } }
-    }
-    if ($j) { $j | Wait-Job | Out-Null; $j | Remove-Job }
-    Write-Host "🎉 All updates completed."
-}
-
 function proxy {
     $env:HTTP_PROXY = $PROXY_URL
     $env:HTTPS_PROXY = $PROXY_URL
@@ -261,19 +245,41 @@ function pitidy {
 }
 
 function aiupdate {
-    $j = @()
-    foreach ($t in @('copilot', 'claude', 'codex', 'qodercli', 'pi')) {
-        if (Get-Command $t -ea 0) {
-            Write-Host "⏳ Updating $t..."
-            $j += Start-Job { & $args[0] update; if ($?) { Write-Host "✅ $($args[0]) done" }else { Write-Host "❌ $($args[0]) failed" } } -Arg $t
-        }
-    }
-    if (Get-Command opencode -ea 0) {
-        Write-Host "⏳ Updating opencode..."
-        $j += Start-Job { & opencode upgrade; if ($?) { Write-Host "✅ opencode done" }else { Write-Host "❌ opencode failed" } }
-    }
-    if ($j) { $j | Wait-Job | Out-Null; $j | Remove-Job }
-    Write-Host "🎉 All updates completed."
+   $jobs = @()
+   foreach ($cmdline in @('claude update', 'codex update', 'qodercli update', 'copilot update', 'opencode upgrade')) {
+       $exe, $arg = $cmdline -split ' ', 2
+       if (-not (Get-Command $exe -ErrorAction SilentlyContinue)) { Write-Host "❌ $cmdline 失败 (未找到命令 $exe)"; continue }
+       Write-Host "⏳ $cmdline 执行中..."
+       $jobs += Start-Job -ScriptBlock {
+           param($n, $a)
+           $out = & $n $a 2>&1
+           [pscustomobject]@{ Cmd = "$n $a"; OK = (($LASTEXITCODE -eq 0) -and $?); Output = ($out | Out-String) }
+       } -ArgumentList $exe, $arg
+   }
+   if (Get-Command pi -ErrorAction SilentlyContinue) {
+       Write-Host "⏳ pi update 执行中..." ; Write-Host "⏳ pi update --extensions 执行中..."
+       $jobs += Start-Job -ScriptBlock {
+           $r1 = & pi update 2>&1; $ok1 = (($LASTEXITCODE -eq 0) -and $?)
+           Write-Output ([pscustomobject]@{ Cmd = 'pi update';                OK = $ok1; Output = ($r1 | Out-String) })
+           $r2 = & pi update --extensions 2>&1; $ok2 = (($LASTEXITCODE -eq 0) -and $?)
+           Write-Output ([pscustomobject]@{ Cmd = 'pi update --extensions';    OK = $ok2; Output = ($r2 | Out-String) })
+       }
+   } else { Write-Host "❌ pi update --extensions 失败 (未找到命令 pi)" }
+   $failed = @()
+   foreach ($job in $jobs) {
+       Wait-Job $job | Out-Null
+       foreach ($r in @(Receive-Job $job -ErrorAction SilentlyContinue)) {
+           $name = if ($r) { $r.Cmd } else { '?' }
+           if ($r -and $r.OK) { Write-Host "✅ $name 成功" }
+           else { Write-Host "❌ $name 失败"; if ($r) { $failed += $r } }
+       }
+       Remove-Job $job -Force
+   }
+   if ($failed.Count -gt 0) {
+       Write-Host "`n========== 失败的命令输出 =========="
+       foreach ($r in $failed) { Write-Host "`n----- $($r.Cmd) -----"; $t = ($r.Output | Out-String).Trim(); Write-Host $(if ($t) { $t } else { '(无输出)' }) }
+   }
+   Write-Host '🎉 全部更新完成'
 }
 
 # ==============================================
